@@ -1,0 +1,16 @@
+/.idea/
+
+/.idea/*
+
+/*.zip
+
+/Cargo.lock
+
+/target/
+
+*_minified*
+
+/resources/**/*.rs
+
+main - Copy.rs
+main-*.rs
