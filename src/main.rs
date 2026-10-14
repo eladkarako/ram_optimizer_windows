@@ -1,21 +1,18 @@
-#![cfg_attr(not(target_os = "windows"), allow(dead_code))]
-#![cfg_attr(not(target_os = "windows"), allow(unused_imports))]
+#![cfg(target_os = "windows")]
+//! Program designed to only compile for Windows OS due to exclusive use of Windows API.
 
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread;
-use parking_lot::{Mutex, RwLock};
-use sysinfo::{System, Process};
 use clap::{Parser, ValueEnum};
-
-#[cfg(windows)]
+use parking_lot::RwLock;
 use std::ffi::c_void;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::thread;
+use sysinfo::{Process, System};
 
 // ============================================================================
 // Windows API Bindings
 // ============================================================================
 
-#[cfg(windows)]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum MemoryTrimMethod {
@@ -24,22 +21,16 @@ pub enum MemoryTrimMethod {
     SetWorkingSetEx = 2,
 }
 
-
-#[cfg(windows)]
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum TrimMethod {
-    /// EmptyWorkingSet API
     #[value(name = "empty")]
     Empty,
-    /// SetProcessWorkingSetSize API
     #[value(name = "set")]
     Set,
-    /// SetProcessWorkingSetSizeEx API
     #[value(name = "ex")]
     Ex,
 }
 
-#[cfg(windows)]
 impl From<TrimMethod> for MemoryTrimMethod {
     fn from(method: TrimMethod) -> Self {
         match method {
@@ -50,16 +41,11 @@ impl From<TrimMethod> for MemoryTrimMethod {
     }
 }
 
-#[cfg(windows)]
 const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
-
-#[cfg(windows)]
 const PROCESS_SET_QUOTA: u32 = 0x0100;
-
-#[cfg(windows)]
 const QUOTA_LIMITS_HARDWS_MAX_DISABLE: u32 = 0x00000008;
+const FORMAT_MESSAGE_FROM_SYSTEM: u32 = 0x00001000;
 
-#[cfg(windows)]
 unsafe extern "system" {
     fn OpenProcess(
         dwDesiredAccess: u32,
@@ -86,12 +72,12 @@ unsafe extern "system" {
 
     fn GetLastError() -> u32;
 
-    fn FormatMessageA(
+    fn FormatMessageW(
         dwFlags: u32,
         lpSource: *mut c_void,
         dwMessageId: u32,
         dwLanguageId: u32,
-        lpBuffer: *mut u8,
+        lpBuffer: *mut u16,
         nSize: u32,
         Arguments: *mut c_void,
     ) -> u32;
@@ -101,18 +87,16 @@ unsafe extern "system" {
 // Error Handling
 // ============================================================================
 
-#[cfg(windows)]
-const FORMAT_MESSAGE_FROM_SYSTEM: u32 = 0x00001000;
+fn get_last_error_message() -> String {
+    let error_code = unsafe { GetLastError() };
 
-#[cfg(windows)]
-fn get_error_message(error_code: u32) -> String {
     if error_code == 0 {
         return "success".to_string();
     }
 
     unsafe {
-        let mut buffer: [u8; 512] = [0; 512];
-        let msg_len = FormatMessageA(
+        let mut buffer: [u16; 512] = [0; 512];
+        let msg_len = FormatMessageW(
             FORMAT_MESSAGE_FROM_SYSTEM,
             std::ptr::null_mut(),
             error_code,
@@ -123,41 +107,41 @@ fn get_error_message(error_code: u32) -> String {
         );
 
         if msg_len > 0 {
-            let msg = String::from_utf8_lossy(&buffer[..msg_len as usize])
+            String::from_utf16_lossy(&buffer[..msg_len as usize])
                 .trim_end()
-                .to_string();
-            msg
+                .to_string()
         } else {
             format!("Error code: {}", error_code)
         }
     }
 }
 
-#[cfg(windows)]
-fn get_last_error() -> u32 {
-    unsafe { GetLastError() }
+// ============================================================================
+// Process Display Formatting
+// ============================================================================
+
+fn build_command_string(
+    cmd: &[impl AsRef<std::ffi::OsStr>]
+) -> String {
+    cmd.iter()
+        .map(|s| s.as_ref().to_string_lossy().to_string())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn format_process_display(process: &Process) -> String {
+    let cmd = process.cmd();
+    if !cmd.is_empty() {
+        build_command_string(cmd)
+    } else {
+        process.name().to_string_lossy().to_string()
+    }
 }
 
 // ============================================================================
 // Process Enumeration
 // ============================================================================
 
-#[cfg(windows)]
-fn format_process_display(process: &Process) -> String {
-    let cmd = process
-        .cmd()
-        .join(std::ffi::OsStr::new(" "))
-        .to_string_lossy()
-        .to_string();
-
-    if cmd.is_empty() {
-        process.name().to_string_lossy().to_string()
-    } else {
-        cmd
-    }
-}
-
-#[cfg(windows)]
 fn enumerate_processes() -> Vec<(u32, String)> {
     let sys = System::new_all();
     sys.processes()
@@ -171,10 +155,9 @@ fn enumerate_processes() -> Vec<(u32, String)> {
 }
 
 // ============================================================================
-// Windows API Helpers
+// Windows API Process Operations
 // ============================================================================
 
-#[cfg(windows)]
 fn open_process_handle(pid: u32) -> Option<*mut c_void> {
     unsafe {
         let handle = OpenProcess(
@@ -182,22 +165,25 @@ fn open_process_handle(pid: u32) -> Option<*mut c_void> {
             false,
             pid,
         );
-
-        if handle.is_null() {
-            None
-        } else {
-            Some(handle)
-        }
+        if handle.is_null() { None } else { Some(handle) }
     }
 }
 
-#[cfg(windows)]
-fn trim_working_set(handle: *mut c_void, method: MemoryTrimMethod) -> bool {
+fn trim_working_set(
+    handle: *mut c_void,
+    method: MemoryTrimMethod,
+) -> bool {
     let result = unsafe {
         match method {
-            MemoryTrimMethod::EmptyWorkingSet => EmptyWorkingSet(handle),
+            MemoryTrimMethod::EmptyWorkingSet => {
+                EmptyWorkingSet(handle)
+            }
             MemoryTrimMethod::SetWorkingSet => {
-                SetProcessWorkingSetSize(handle, usize::MAX, usize::MAX)
+                SetProcessWorkingSetSize(
+                    handle,
+                    usize::MAX,
+                    usize::MAX,
+                )
             }
             MemoryTrimMethod::SetWorkingSetEx => {
                 SetProcessWorkingSetSizeEx(
@@ -209,35 +195,31 @@ fn trim_working_set(handle: *mut c_void, method: MemoryTrimMethod) -> bool {
             }
         }
     };
-
     result != 0
 }
 
-#[cfg(windows)]
 fn close_process_handle(handle: *mut c_void) {
     unsafe {
         CloseHandle(handle);
     }
 }
 
-#[cfg(windows)]
-fn apply_to_process(pid: u32, method: MemoryTrimMethod) -> (bool, String) {
-    match open_process_handle(pid) {
-        Some(handle) => {
-            let success = trim_working_set(handle, method);
-            close_process_handle(handle);
+fn trim_process_memory(
+    pid: u32,
+    method: MemoryTrimMethod,
+) -> (bool, String) {
+    let handle = match open_process_handle(pid) {
+        Some(h) => h,
+        None => return (false, get_last_error_message()),
+    };
 
-            if success {
-                (true, "success".to_string())
-            } else {
-                let error_code = get_last_error();
-                (false, get_error_message(error_code))
-            }
-        }
-        None => {
-            let error_code = get_last_error();
-            (false, get_error_message(error_code))
-        }
+    let success = trim_working_set(handle, method);
+    close_process_handle(handle);
+
+    if success {
+        (true, "success".to_string())
+    } else {
+        (false, get_last_error_message())
     }
 }
 
@@ -245,40 +227,46 @@ fn apply_to_process(pid: u32, method: MemoryTrimMethod) -> (bool, String) {
 // Process Batch Management
 // ============================================================================
 
-#[cfg(windows)]
 struct ProcessBatch {
     processes: RwLock<Vec<(u32, String)>>,
     counter: AtomicUsize,
+    index: AtomicUsize,
     max_counter_digits: usize,
-    index: Mutex<usize>,
 }
 
-#[cfg(windows)]
 impl ProcessBatch {
-    fn new(processes: Vec<(u32, String)>, max_counter_digits: usize) -> Self {
+    fn new(
+        processes: Vec<(u32, String)>,
+        max_counter_digits: usize,
+    ) -> Self {
         ProcessBatch {
             processes: RwLock::new(processes),
             counter: AtomicUsize::new(0),
+            index: AtomicUsize::new(0),
             max_counter_digits,
-            index: Mutex::new(0),
         }
     }
 
     fn take_next(&self) -> Option<(u32, String)> {
-        let mut idx = self.index.lock();
         let processes = self.processes.read();
+        let idx = self.index.fetch_add(1, Ordering::SeqCst);
 
-        if *idx < processes.len() {
-            let (pid, name) = processes[*idx].clone();
-            *idx += 1;
-            Some((pid, name))
+        if idx < processes.len() {
+            Some(processes[idx].clone())
         } else {
             None
         }
     }
 
-    fn output(&self, pid: u32, display: &str, success: bool, message: &str) {
-        let counter = self.counter.fetch_add(1, Ordering::SeqCst) + 1;
+    fn record_result(
+        &self,
+        pid: u32,
+        display: &str,
+        success: bool,
+        message: &str,
+    ) {
+        let counter =
+            self.counter.fetch_add(1, Ordering::SeqCst) + 1;
         let status = if success { "V" } else { "X" };
         println!(
             "{:0width$}.\t{}\t{}\t{}\t{}",
@@ -293,17 +281,29 @@ impl ProcessBatch {
 }
 
 // ============================================================================
-// Threading Orchestration
+// Worker Thread Logic
 // ============================================================================
 
-#[cfg(windows)]
+fn process_batch_worker(
+    batch: Arc<ProcessBatch>,
+    method: MemoryTrimMethod,
+) {
+    while let Some((pid, display)) = batch.take_next() {
+        let (success, message) = trim_process_memory(pid, method);
+        batch.record_result(pid, &display, success, &message);
+    }
+}
+
+// ============================================================================
+// Thread Orchestration
+// ============================================================================
+
 fn calculate_thread_count(num_processes: usize) -> usize {
     let cpu_count = num_cpus::get();
     let thread_count = cpu_count.min(num_processes);
     thread_count.max(1).min(16)
 }
 
-#[cfg(windows)]
 fn spawn_worker_threads(
     batch: Arc<ProcessBatch>,
     num_threads: usize,
@@ -313,16 +313,12 @@ fn spawn_worker_threads(
         .map(|_| {
             let batch = Arc::clone(&batch);
             thread::spawn(move || {
-                while let Some((pid, display)) = batch.take_next() {
-                    let (success, message) = apply_to_process(pid, method);
-                    batch.output(pid, &display, success, &message);
-                }
+                process_batch_worker(batch, method);
             })
         })
         .collect()
 }
 
-#[cfg(windows)]
 fn wait_for_threads(handles: Vec<thread::JoinHandle<()>>) {
     for handle in handles {
         let _ = handle.join();
@@ -333,12 +329,15 @@ fn wait_for_threads(handles: Vec<thread::JoinHandle<()>>) {
 // CLI Arguments
 // ============================================================================
 
-#[cfg(windows)]
-#[derive(Parser)]
-#[command(name = "RAM Optimizer Windows")]
-#[command(about = "Trim working sets of all processes", long_about = None)]
+#[derive(Parser, Debug, Clone)]
+#[command(name = env!("CARGO_PKG_NAME"))]
+#[command(version = env!("CARGO_PKG_VERSION"))]
+#[command(author = env!("CARGO_PKG_AUTHORS"))]
+#[command(about = env!("CARGO_PKG_DESCRIPTION"), long_about = None)]
+#[command(after_help = concat!(
+"Repository:    ", env!("CARGO_PKG_REPOSITORY"), "\n",
+))]
 struct Cli {
-    /// API method to use for trimming
     #[arg(
         short,
         long,
@@ -348,7 +347,6 @@ struct Cli {
     )]
     method: TrimMethod,
 
-    /// Number of worker threads (auto-calculated if not specified)
     #[arg(
         short = 't',
         long,
@@ -361,11 +359,8 @@ struct Cli {
 // Main Entry Point
 // ============================================================================
 
-#[cfg(windows)]
 fn main() {
     let cli = Cli::parse();
-
-    // Enumerate all processes once
     let processes = enumerate_processes();
 
     if processes.is_empty() {
@@ -377,24 +372,15 @@ fn main() {
 
     let num_processes = processes.len();
     let max_counter_digits = num_processes.to_string().len();
+    let num_threads = cli
+        .threads
+        .map(|t| t.max(1).min(16))
+        .unwrap_or_else(|| calculate_thread_count(num_processes));
 
-    let num_threads = match cli.threads {
-        Some(t) => t.max(1).min(16),
-        None => calculate_thread_count(num_processes),
-    };
-
-    // Create process batch
-    let batch = Arc::new(ProcessBatch::new(processes, max_counter_digits));
-
-    // Spawn worker threads
+    let batch =
+        Arc::new(ProcessBatch::new(processes, max_counter_digits));
     let method: MemoryTrimMethod = cli.method.into();
     let handles = spawn_worker_threads(batch, num_threads, method);
 
-    // Wait for completion
     wait_for_threads(handles);
-}
-
-#[cfg(not(windows))]
-fn main() {
-    eprintln!("This program only runs on Windows.");
 }

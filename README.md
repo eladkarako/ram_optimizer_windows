@@ -1,10 +1,47 @@
+#### Windows OS only!
+
 ## ram_optimizer_windows
 
 releases RAM from other programs. just like `FreeRAM-XP-Pro`.  
 
 you can try it with the RAM monitoring tool (works in any OS) - https://github.com/eladkarako/ram_report
 
-# Windows OS only!
+<hr/>
+
+<details><summary><h3>👇  download</h3></summary>
+
+### download (direct URLs - latest release)
+
+#### Windows
+- [![](resources/logos/64.png) ![](resources/logos/windows.png) x86_64-pc-windows-msvc.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-pc-windows-msvc.zip)
+- [![](resources/logos/64.png) ![](resources/logos/windows.png) aarch64-pc-windows-msvc.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-pc-windows-msvc.zip)
+- [![](resources/logos/32.png) ![](resources/logos/windows.png) i686-pc-windows-msvc.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-pc-windows-msvc.zip)
+
+#### Android (NDK `v30.0.16248370`, SDK `v21`)
+- [![](resources/logos/64.png) ![](resources/logos/android.png) aarch64-linux-android.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-linux-android.zip)
+- [![](resources/logos/32.png) ![](resources/logos/android.png) armv7-linux-androideabi.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-linux-androideabi.zip)
+- [![](resources/logos/64.png) ![](resources/logos/android.png) x86_64-linux-android.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-linux-android.zip)
+- [![](resources/logos/32.png) ![](resources/logos/android.png) i686-linux-android.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-linux-android.zip)
+
+#### Linux (gnu)
+- [![](resources/logos/64.png) ![](resources/logos/linux.png) x86_64-unknown-linux-gnu.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-unknown-linux-gnu.zip)
+- [![](resources/logos/32.png) ![](resources/logos/linux.png) i686-unknown-linux-gnu.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-unknown-linux-gnu.zip)
+- [![](resources/logos/64.png) ![](resources/logos/linux.png) aarch64-unknown-linux-gnu.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-unknown-linux-gnu.zip)
+- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-gnueabi.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-gnueabi.zip)
+- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-gnueabihf.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-gnueabihf.zip)
+
+#### Linux (musl)
+- [![](resources/logos/64.png) ![](resources/logos/linux.png) x86_64-unknown-linux-musl.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-unknown-linux-musl.zip)
+- [![](resources/logos/32.png) ![](resources/logos/linux.png) i686-unknown-linux-musl.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-unknown-linux-musl.zip)
+- [![](resources/logos/64.png) ![](resources/logos/linux.png) aarch64-unknown-linux-musl.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-unknown-linux-musl.zip)
+- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-musleabi.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-musleabi.zip)
+- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-musleabihf.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-musleabihf.zip)
+
+### other
+- [changelog.txt](https://github.com/eladkarako/ram_report/releases/latest/download/changelog.txt)
+- [version.txt](https://github.com/eladkarako/ram_report/releases/latest/download/version.txt)
+
+</details>
 
 <hr/>
 
@@ -91,40 +128,25 @@ by default it will use same amount of parallelism as the amount of CPUs you have
 
 <hr/>
 
-<details><summary><h3>👇  download</h3></summary>
+## Tip:
 
-### download (direct URLs - latest release)
+those Windows API calls would work on application started by same credentials as you probably,  
+if you are an administrator it will work on more applications,  
+try to run the program as `NT AUTHORITY\SYSTEM` user - the System account,  
+you only need to be a normal administrator and download https://live.sysinternals.com/Files/PsExec.zip  
+place `PsExec64.exe` in same directory as `ram_optimizer_windows.exe`,  
+and run (or write a batch file that does that for you):  
 
-#### Windows
-- [![](resources/logos/64.png) ![](resources/logos/windows.png) x86_64-pc-windows-msvc.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-pc-windows-msvc.zip)
-- [![](resources/logos/64.png) ![](resources/logos/windows.png) aarch64-pc-windows-msvc.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-pc-windows-msvc.zip)
-- [![](resources/logos/32.png) ![](resources/logos/windows.png) i686-pc-windows-msvc.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-pc-windows-msvc.zip)
+```
+::@echo off
+chcp 65001 1>nul 2>nul
+pushd "%~sdp0"
 
-#### Android (NDK `v30.0.16248370`, SDK `v21`)
-- [![](resources/logos/64.png) ![](resources/logos/android.png) aarch64-linux-android.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-linux-android.zip)
-- [![](resources/logos/32.png) ![](resources/logos/android.png) armv7-linux-androideabi.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-linux-androideabi.zip)
-- [![](resources/logos/64.png) ![](resources/logos/android.png) x86_64-linux-android.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-linux-android.zip)
-- [![](resources/logos/32.png) ![](resources/logos/android.png) i686-linux-android.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-linux-android.zip)
+call "PsExec64.exe" -accepteula -nobanner -w "%CD%" -s "%CD%\ram_optimizer_windows.exe"
 
-#### Linux (gnu)
-- [![](resources/logos/64.png) ![](resources/logos/linux.png) x86_64-unknown-linux-gnu.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-unknown-linux-gnu.zip)
-- [![](resources/logos/32.png) ![](resources/logos/linux.png) i686-unknown-linux-gnu.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-unknown-linux-gnu.zip)
-- [![](resources/logos/64.png) ![](resources/logos/linux.png) aarch64-unknown-linux-gnu.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-unknown-linux-gnu.zip)
-- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-gnueabi.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-gnueabi.zip)
-- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-gnueabihf.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-gnueabihf.zip)
-
-#### Linux (musl)
-- [![](resources/logos/64.png) ![](resources/logos/linux.png) x86_64-unknown-linux-musl.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/x86_64-unknown-linux-musl.zip)
-- [![](resources/logos/32.png) ![](resources/logos/linux.png) i686-unknown-linux-musl.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/i686-unknown-linux-musl.zip)
-- [![](resources/logos/64.png) ![](resources/logos/linux.png) aarch64-unknown-linux-musl.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/aarch64-unknown-linux-musl.zip)
-- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-musleabi.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-musleabi.zip)
-- [![](resources/logos/32.png) ![](resources/logos/linux.png) armv7-unknown-linux-musleabihf.zip](https://github.com/eladkarako/ram_optimizer_windows/releases/latest/download/armv7-unknown-linux-musleabihf.zip)
-
-### other
-- [changelog.txt](https://github.com/eladkarako/ram_report/releases/latest/download/changelog.txt)
-- [version.txt](https://github.com/eladkarako/ram_report/releases/latest/download/version.txt)
-
-</details>
+pause
+exit /b 0
+```
 
 <hr/>
 
